@@ -4,43 +4,36 @@ import lombok.Data;
 
 import java.io.Serializable;
 
+
 /**
- * 用户创建请求
+ * 图表创建请求
  *
- * @author yupi
+ * @author wzw
  */
 @Data
 public class ChartAddRequest implements Serializable {
 
     /**
-     * 用户昵称
+     * 分析目标
      */
-    private String userName;
+    private String goal;
 
     /**
-     * 账号
+     * 图表数据
      */
-    private String userAccount;
+    private String chartData;
 
     /**
-     * 用户头像
+     * 图表类型
      */
-    private String userAvatar;
+    private String chartType;
 
     /**
-     * 性别
+     * 图标名称
      */
-    private Integer gender;
+    private String chartName;
 
-    /**
-     * 用户角色: user, admin
-     */
-    private String userRole;
 
-    /**
-     * 密码
-     */
-    private String userPassword;
 
     private static final long serialVersionUID = 1L;
 }

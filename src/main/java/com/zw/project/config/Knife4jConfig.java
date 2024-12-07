@@ -18,20 +18,19 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
  */
 @Configuration
 @EnableSwagger2
-@Profile("dev")
 public class Knife4jConfig {
 
     @Bean
     public Docket defaultApi2() {
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(new ApiInfoBuilder()
-                        .title("project-backend")
-                        .description("project-backend")
+                        .title("zwBI-backend")
+                        .description("智能BI项目后端文档页面")
                         .version("1.0")
                         .build())
                 .select()
                 // 指定 Controller 扫描包路径
-                .apis(RequestHandlerSelectors.basePackage("com.yupi.project.controller"))
+                .apis(RequestHandlerSelectors.basePackage("com.zw.project.controller"))
                 .paths(PathSelectors.any())
                 .build();
     }

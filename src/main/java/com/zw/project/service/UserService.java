@@ -3,6 +3,7 @@ package com.zw.project.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zw.project.model.entity.User;
+import com.zw.project.model.vo.UserVO;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -31,7 +32,7 @@ public interface UserService extends IService<User> {
      * @param request
      * @return 脱敏后的用户信息
      */
-    User userLogin(String userAccount, String userPassword, HttpServletRequest request);
+    UserVO userLogin(String userAccount, String userPassword, HttpServletRequest request);
 
     /**
      * 获取当前登录用户
@@ -39,7 +40,7 @@ public interface UserService extends IService<User> {
      * @param request
      * @return
      */
-    User getLoginUser(HttpServletRequest request);
+    UserVO getLoginUser(HttpServletRequest request);
 
     /**
      * 是否为管理员
@@ -56,4 +57,12 @@ public interface UserService extends IService<User> {
      * @return
      */
     boolean userLogout(HttpServletRequest request);
+
+    /**
+     * 获取脱敏后的用户信息
+     *
+     * @param user
+     * @return
+     */
+    UserVO getSafetyUser(User user);
 }

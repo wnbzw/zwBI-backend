@@ -4,9 +4,10 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.util.Date;
 
 /**
- * 用户更新请求
+ * 图表更新请求
  *
  * @author yupi
  */
@@ -18,34 +19,24 @@ public class ChartUpdateRequest implements Serializable {
     private Long id;
 
     /**
-     * 用户昵称
+     * 分析目标
      */
-    private String userName;
+    private String goal;
 
     /**
-     * 账号
+     * 图表数据
      */
-    private String userAccount;
+    private String chartData;
 
     /**
-     * 用户头像
+     * 图表类型
      */
-    private String userAvatar;
+    private String chartType;
 
     /**
-     * 性别
+     * 图标名称
      */
-    private Integer gender;
-
-    /**
-     * 用户角色: user, admin
-     */
-    private String userRole;
-
-    /**
-     * 密码
-     */
-    private String userPassword;
+    private String chartName;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;

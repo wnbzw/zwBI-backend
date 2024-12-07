@@ -5,6 +5,7 @@ import com.zw.project.annotation.AuthCheck;
 import com.zw.project.common.ErrorCode;
 import com.zw.project.exception.BusinessException;
 import com.zw.project.model.entity.User;
+import com.zw.project.model.vo.UserVO;
 import com.zw.project.service.UserService;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -48,7 +49,7 @@ public class AuthInterceptor {
         RequestAttributes requestAttributes = RequestContextHolder.currentRequestAttributes();
         HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
         // 当前登录用户
-        User user = userService.getLoginUser(request);
+        UserVO user = userService.getLoginUser(request);
         // 拥有任意权限即通过
         if (CollectionUtils.isNotEmpty(anyRole)) {
             String userRole = user.getUserRole();

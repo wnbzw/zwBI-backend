@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 用户查询请求
+ * 图表查询请求
  *
  * @author yupi
  */
@@ -21,39 +21,26 @@ public class ChartQueryRequest extends PageRequest implements Serializable {
     private Long id;
 
     /**
-     * 用户昵称
+     * 分析目标
      */
-    private String userName;
+    private String goal;
+
 
     /**
-     * 账号
+     * 图表类型
      */
-    private String userAccount;
+    private String chartType;
 
     /**
-     * 用户头像
+     * 图标名称
      */
-    private String userAvatar;
+    private String chartName;
 
     /**
-     * 性别
+     * 创建用户 id
      */
-    private Integer gender;
+    private Long userId;
 
-    /**
-     * 用户角色: user, admin
-     */
-    private String userRole;
-
-    /**
-     * 创建时间
-     */
-    private Date createTime;
-
-    /**
-     * 更新时间
-     */
-    private Date updateTime;
 
     private static final long serialVersionUID = 1L;
 }
