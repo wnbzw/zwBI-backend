@@ -1,5 +1,6 @@
 package com.zw.project.controller;
 
+import cn.hutool.core.io.FileUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zw.project.common.BaseResponse;
@@ -25,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -73,6 +75,18 @@ public class ChartController {
         UserVO loginUser = userService.getLoginUser(request);
         long biModelId = 1659171950288818178L;
 
+        // 判断文件大小
+        long size=multipartFile.getSize();
+        final long ONE_MB = 1024 * 1024L;
+        ThrowUtils.throwIf(size > ONE_MB, ErrorCode.PARAMS_ERROR, "文件大小超过1MB");
+
+        //获取原始文件名
+        String originalFilename = multipartFile.getOriginalFilename();
+        //获取文件后缀
+        String suffix = FileUtil.getSuffix(originalFilename);
+
+        final List<String> validFileSuffixList = Arrays.asList("xlsx", "xls");
+        ThrowUtils.throwIf(!validFileSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR, "不支持的文件类型");
         // 构造用户输入
         StringBuilder userInput = new StringBuilder();
         userInput.append("分析需求：").append("\n");
@@ -121,17 +135,6 @@ public class ChartController {
     }
 
 
-    /**
-     * 生成图表
-     * @param chartAddRequest
-     * @param request
-     * @return
-     */
-    public BaseResponse<Chart> genChartByAi(@RequestBody ChartAddRequest chartAddRequest, HttpServletRequest request){
-        if (chartAddRequest == null)
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        return null;
-    }
     /**
      * 生成图表
      * @param chartAddRequest
