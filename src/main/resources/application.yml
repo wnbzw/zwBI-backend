@@ -19,6 +19,7 @@ spring:
     port: 6379
     host: localhost
     database: 0
+    timeout: 5000
 server:
   port: 7529
   servlet:

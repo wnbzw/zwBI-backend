@@ -21,7 +21,7 @@ create table if not exists user
         unique (userAccount)
 ) comment '用户';
 
--- 图标信息表
+-- 图表信息表
 create table if not exists chart
 (
     id             bigint auto_increment comment 'id' primary key,
@@ -30,6 +30,8 @@ create table if not exists chart
     chartType      varchar(128)                       null comment '图表类型',
     chartName      varchar(128)                       null comment '图标名称',
     userId         bigint                             null comment '创建用户Id',
+    status         varchar(128)                       not null default 'wait' comment 'wait,running,succeed,failed',
+    execMessage    text                               null comment '执行信息',
     generateChart  text                               null comment '生成的图表数据',
     generateResult text                               null comment '生成的分析结果',
     createTime     datetime default CURRENT_TIMESTAMP not null comment '创建时间',
