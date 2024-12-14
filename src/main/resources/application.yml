@@ -20,6 +20,11 @@ spring:
     host: localhost
     database: 0
     timeout: 5000
+  rabbitmq:
+    host: 120.26.52.171
+    port: 5672
+    username: admin
+    password: 123456
 server:
   port: 7529
   servlet:
@@ -37,3 +42,9 @@ yuapi:
   client:
     access-key: 2gj9lv6kpzsiyz7i1xxkn648ck036sek
     secret-key: cvmrb88f5lwscv8jz1vc23s3ktedlw16
+#讯飞ai 配置
+xun-fei:
+  client:
+    appId: 8f6fdc53
+    apiSecret: ODc1NTljYzBmM2FiYmM0YmI4ZGE4MDA3
+    apiKey: 2b0ba9a65e733616742a6b59317e442b

@@ -22,12 +22,6 @@ import java.util.stream.Collectors;
  */
 public class ExcelUtils {
     public static String excelToCsv(MultipartFile multipartFile) {
-//        File file = null;
-//        try {
-//            file = ResourceUtils.getFile("classpath:网站数据.xlsx");
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//        }
 
         List<Map<Integer, String>> list = null;
         try {
@@ -59,8 +53,42 @@ public class ExcelUtils {
         return stringBuilder.toString();
     }
 
+    public static String excelToCsv2(File multipartFile) {
+
+        List<Map<Integer, String>> list = null;
+        list = EasyExcel.read(multipartFile)
+                .excelType(ExcelTypeEnum.XLSX)
+                .sheet()
+                .headRowNumber(0)
+                .doReadSync();
+        //数据为空
+        if (list.isEmpty()) {
+            return "";
+        }
+        //转换为csv
+        StringBuilder stringBuilder = new StringBuilder();
+        //读取表头
+//        LinkedHashMap<Integer, String> headMap = (LinkedHashMap) list.get(0);
+//        List<String> headList = headMap.values().stream().filter(ObjectUtils::isNotEmpty).collect(Collectors.toList());
+//        stringBuilder.append(StringUtils.join(headList, ",")).append("\n");
+
+        //读取数据
+        list.stream().forEach(map -> {
+            List<String> dataList = map.values().stream().filter(ObjectUtils::isNotEmpty).collect(Collectors.toList());
+            stringBuilder.append(StringUtils.join(dataList, ",")).append("\n");
+        });
+
+        return stringBuilder.toString();
+    }
     public static void main(String[] args) {
-        excelToCsv(null);
+        File file= null;
+        try {
+            file =  ResourceUtils.getFile("classpath:网站数据.xlsx");
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        String csv =excelToCsv2(file);
+        System.out.println(csv);
     }
 }
 

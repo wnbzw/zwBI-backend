@@ -3,6 +3,7 @@ package com.zw.project.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.plugins.pagination.PageDTO;
+import com.zw.project.annotation.AuthCheck;
 import com.zw.project.common.BaseResponse;
 import com.zw.project.common.DeleteRequest;
 import com.zw.project.common.ErrorCode;
@@ -115,6 +116,7 @@ public class UserController {
      * @param request
      * @return
      */
+    @AuthCheck(mustRole = "admin")
     @PostMapping("/add")
     public BaseResponse<Long> addUser(@RequestBody UserAddRequest userAddRequest, HttpServletRequest request) {
         if (userAddRequest == null) {
@@ -136,6 +138,7 @@ public class UserController {
      * @param request
      * @return
      */
+    @AuthCheck(mustRole = "admin")
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteUser(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
@@ -152,6 +155,7 @@ public class UserController {
      * @param request
      * @return
      */
+    @AuthCheck(anyRole ={"user","admin"})
     @PostMapping("/update")
     public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest request) {
         if (userUpdateRequest == null || userUpdateRequest.getId() == null) {

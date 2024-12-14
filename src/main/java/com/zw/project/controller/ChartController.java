@@ -15,6 +15,8 @@ import com.zw.project.model.dto.chart.*;
 import com.zw.project.model.entity.Chart;
 import com.zw.project.model.vo.BiResponse;
 import com.zw.project.model.vo.UserVO;
+import com.zw.project.mq.BiMqConstant;
+import com.zw.project.mq.MyMessageProducer;
 import com.zw.project.service.ChartService;
 import com.zw.project.service.UserService;
 import com.zw.project.utils.ExcelUtils;
@@ -57,6 +59,9 @@ public class ChartController {
 
     @Resource
     private ThreadPoolExecutor threadPoolExecutor;
+
+    @Resource
+    private MyMessageProducer myMessageProducer;
 
     // region
 
@@ -112,9 +117,9 @@ public class ChartController {
         userInput.append(csvData).append("\n");
 
         // 拿到返回结果
-        String result = aiManager.doChat(biModelId,userInput.toString());
+        String result = aiManager.sendMsgToXingHuo(true,userInput.toString());
         // 对返回结果做拆分,按照5个中括号进行拆分
-        String[] splits = result.split("【【【【【");
+        String[] splits = result.split("'【【【【【'");
         // 拆分之后还要进行校验
         if (splits.length < 3) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR,"AI 生成错误");
@@ -131,6 +136,7 @@ public class ChartController {
         chart.setGenerateChart(genChart);
         chart.setGenerateResult(genResult);
         chart.setUserId(loginUser.getId());
+        chart.setStatus("succeed");
         boolean saveResult = chartService.save(chart);
         ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
         BiResponse biResponse = new BiResponse();
@@ -204,8 +210,6 @@ public class ChartController {
         chart.setChartType(chartType);
         chart.setStatus("wait");
         chart.setUserId(loginUser.getId());
-        //chart.setGenerateChart(genChart);
-        //chart.setGenerateResult(genResult);
         boolean saveResult = chartService.save(chart);
         ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
 
@@ -221,11 +225,11 @@ public class ChartController {
             }
             // 调用AI
             try {
-                CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> aiManager.doChat(biModelId, userInput.toString()), threadPoolExecutor);
+                CompletableFuture<String> future = CompletableFuture.supplyAsync(() -> aiManager.sendMsgToXingHuo(true, userInput.toString()), threadPoolExecutor);
                 String result = future.get(20, TimeUnit.SECONDS); // 设置20秒超时
 
                 // 对返回结果做拆分,按照5个中括号进行拆分
-                String[] splits = result.split("【【【【【");
+                String[] splits = result.split("'【【【【【'");
                 // 拆分之后还要进行校验
                 if (splits.length < 3) {
                     handleChartUpdateError(chart.getId(), "AI 生成错误");
@@ -261,6 +265,78 @@ public class ChartController {
 
     }
 
+    /**
+     * 智能分析(异步消息队列)
+     * @param multipartFile
+     * @param genChartByAiRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/gen/async/mq")
+    public BaseResponse<BiResponse> genChartByAiAsyncMq(@RequestPart("file") MultipartFile multipartFile,
+                                                      GenChartByAiRequest genChartByAiRequest, HttpServletRequest request) {
+        String chartName = genChartByAiRequest.getChartName();
+        String goal = genChartByAiRequest.getGoal();
+        String chartType = genChartByAiRequest.getChartType();
+
+        // 如果分析目标为空，就抛出请求参数错误异常，并给出提示
+        ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
+        // 如果名称不为空，并且名称长度大于100，就抛出异常，并给出提示
+        ThrowUtils.throwIf(StringUtils.isNotBlank(chartName) && chartName.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
+
+        UserVO loginUser = userService.getLoginUser(request);
+
+        // 判断文件大小
+        long size=multipartFile.getSize();
+        final long ONE_MB = 1024 * 1024L;
+        ThrowUtils.throwIf(size > ONE_MB, ErrorCode.PARAMS_ERROR, "文件大小超过1MB");
+
+        //获取原始文件名
+        String originalFilename = multipartFile.getOriginalFilename();
+        //获取文件后缀
+        String suffix = FileUtil.getSuffix(originalFilename);
+
+        // 判断文件类型
+        final List<String> validFileSuffixList = Arrays.asList("xlsx", "xls");
+        ThrowUtils.throwIf(!validFileSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR, "不支持的文件类型");
+
+        redisLimiterManager.doRateLimit("genChartByAi"+loginUser.getId());
+
+        // 构造用户输入
+        StringBuilder userInput = new StringBuilder();
+        userInput.append("分析需求：").append("\n");
+
+        // 拼接分析目标
+        String userGoal = goal;
+        // 如果图表类型不为空
+        if (StringUtils.isNotBlank(chartType)) {
+            // 就将分析目标拼接上“请使用”+图表类型
+            userGoal += "，请使用" + chartType;
+        }
+        userInput.append(userGoal).append("\n");
+        userInput.append("原始数据：").append("\n");
+        // 压缩后的数据（把multipartFile传进来）
+        String csvData = ExcelUtils.excelToCsv(multipartFile);
+        userInput.append(csvData).append("\n");
+
+        //先把chart保存到数据库中
+        Chart chart = new Chart();
+        chart.setChartName(chartName);
+        chart.setGoal(goal);
+        chart.setChartData(csvData);
+        chart.setChartType(chartType);
+        chart.setStatus("wait");
+        chart.setUserId(loginUser.getId());
+        boolean saveResult = chartService.save(chart);
+        ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
+
+       long newChartId = chart.getId();
+       myMessageProducer.sendMessage(String.valueOf(newChartId));
+       BiResponse biResponse= new BiResponse();
+       biResponse.setChartId(newChartId);
+       return ResultUtils.success(biResponse);
+
+    }
     private void handleChartUpdateError(Long chartId, String execMessage) {
         Chart updateChart = new Chart();
         updateChart.setId(chartId);
@@ -272,17 +348,7 @@ public class ChartController {
         }
     }
 
-    /**
-     * 生成图表
-     * @param chartAddRequest
-     * @param request
-     * @return
-     */
-    public BaseResponse<Chart> genChartByAiAsync(@RequestBody ChartAddRequest chartAddRequest, HttpServletRequest request){
-        if (chartAddRequest == null)
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        return null;
-    }
+
     /**
      * 获取我创建的图表
      */
@@ -299,6 +365,7 @@ public class ChartController {
         }
         QueryWrapper<Chart> queryWrapper = new QueryWrapper<>(chartQuery);
         queryWrapper.eq("userId", userVo.getId());
+        queryWrapper.orderByDesc("createTime"); // 添加排序条件
         Page<Chart> chartPage = chartService.page(new Page<>(current, size), queryWrapper);
         return ResultUtils.success(chartPage);
 
