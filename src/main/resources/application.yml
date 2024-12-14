@@ -4,9 +4,9 @@ spring:
   # DataSource Config
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/zwbi_db
-    username: root
-    password: 123456
+    url: jdbc:mysql://localhost:3306/xxxxx
+    username: xxx
+    password: xxxx
   mvc:
     pathmatch:
       matching-strategy: ANT_PATH_MATCHER
@@ -21,10 +21,10 @@ spring:
     database: 0
     timeout: 5000
   rabbitmq:
-    host: 120.26.52.171
+    host: xxx
     port: 5672
-    username: admin
-    password: 123456
+    username: xxx
+    password: xxx
 server:
   port: 7529
   servlet:
@@ -38,13 +38,10 @@ mybatis-plus:
       logic-delete-field: isDelete # 全局逻辑删除的实体字段名(since 3.3.0,配置后可以忽略不配置步骤2)
       logic-delete-value: 1 # 逻辑已删除值(默认为 1)
       logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
-yuapi:
-  client:
-    access-key: 2gj9lv6kpzsiyz7i1xxkn648ck036sek
-    secret-key: cvmrb88f5lwscv8jz1vc23s3ktedlw16
+
 #讯飞ai 配置
 xun-fei:
   client:
-    appId: 8f6fdc53
-    apiSecret: ODc1NTljYzBmM2FiYmM0YmI4ZGE4MDA3
-    apiKey: 2b0ba9a65e733616742a6b59317e442b
+    appId: xxx
+    apiSecret: xxx
+    apiKey: xxx
