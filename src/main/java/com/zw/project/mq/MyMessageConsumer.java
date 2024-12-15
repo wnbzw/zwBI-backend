@@ -27,7 +27,12 @@ public class MyMessageConsumer {
     @Resource
     private AiManager aiManager;
 
-    static  final long biModelId = 1659171950288818178L;
+    /**
+     * 接收消息
+     * @param message
+     * @param channel
+     * @param deliveryTag
+     */
     @SneakyThrows
     @RabbitListener(queues = BiMqConstant.BI_QUEUE_NAME, ackMode = "MANUAL")
     public void receiveMessage(String message, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
@@ -81,6 +86,67 @@ public class MyMessageConsumer {
         channel.basicAck(deliveryTag, false);
     }
 
+    //处理死信队列消息
+    @SneakyThrows
+    @RabbitListener(queues = BiMqConstant.BI_DEADQUEUE_NAME, ackMode = "MANUAL")
+    public void receiveDeadLetterMessage(String message, Channel channel, @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) {
+        log.info("receiveDeadLetterMessage message = {}", message);
+        if (StringUtils.isBlank(message)) {
+            // 如果更新失败，拒绝当前消息，让消息重新进入队列
+            channel.basicNack(deliveryTag, false, false);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "消息为空");
+        }
+        long chartId = Long.parseLong(message);
+        Chart chart = chartService.getById(chartId);
+        if (chart == null) {
+            // 如果图表为空，拒绝消息并抛出业务异常
+            channel.basicNack(deliveryTag, false, false);
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "图表为空");
+        }
+
+        Chart updateChart = new Chart();
+        updateChart.setId(chart.getId());
+        updateChart.setStatus("running");
+        boolean b = chartService.updateById(updateChart);
+        if (!b) {
+            // 如果更新图表执行中状态失败，拒绝消息并处理图表更新错误
+            channel.basicNack(deliveryTag, false, false);
+            handleChartUpdateError(chart.getId(), "更新图表执行中状态失败");
+            return;
+        }
+
+        String result = aiManager.sendMsgToXingHuo(true, buildUserInput(chart));
+        String[] splits = result.split("'【【【【【'");
+        if (splits.length < 3) {
+            channel.basicNack(deliveryTag, false, false);
+            handleChartUpdateError(chart.getId(), "AI 生成错误");
+            return;
+        }
+        String genChart = splits[1].trim();
+        String genResult = splits[2].trim();
+        Chart updateChartResult = new Chart();
+        updateChartResult.setId(chart.getId());
+        updateChartResult.setGenerateChart(genChart);
+        updateChartResult.setGenerateResult(genResult);
+        // todo 建议定义状态为枚举值
+        updateChartResult.setStatus("succeed");
+        boolean updateResult = chartService.updateById(updateChartResult);
+        if (!updateResult) {
+            // 如果更新图表成功状态失败，拒绝消息并处理图表更新错误
+            channel.basicNack(deliveryTag, false, false);
+            handleChartUpdateError(chart.getId(), "更新图表成功状态失败");
+        }
+        // 消息确认
+        channel.basicAck(deliveryTag, false);
+    }
+
+
+
+    /**
+     * 处理图表更新错误
+     * @param chartId
+     * @param execMessage
+     */
     private void handleChartUpdateError(Long chartId, String execMessage) {
         Chart updateChart = new Chart();
         updateChart.setId(chartId);

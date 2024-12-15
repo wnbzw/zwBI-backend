@@ -4,6 +4,9 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static com.zw.project.mq.BiMqConstant.*;
 
 /**
@@ -24,13 +27,23 @@ public class MqInitMain {
             Connection connection = factory.newConnection();
             // 创建通道
             Channel channel = connection.createChannel();
-            // 定义交换机的名称为"code_exchange"
+            // 定义交换机的名称为"bi_exchange"
             // 声明交换机，指定交换机类型为 direct
             channel.exchangeDeclare(BI_EXCHANGE_NAME, "direct");
+            channel.exchangeDeclare(BI_DEAD_EXCHANGE_NAME,"direct");
 
-            // 创建队列，随机分配一个队列名称
+            //声明死信队列
+            channel.queueDeclare(BI_DEADQUEUE_NAME, true, false, false, null);
+            channel.queueBind(BI_DEADQUEUE_NAME, BI_DEAD_EXCHANGE_NAME, BI_DEAD_ROUTING_KEY);
+
+            Map<String, Object> params=new HashMap<>();
+            params.put("x-dead-letter-exchange", BI_DEAD_EXCHANGE_NAME);
+            params.put("x-dead-letter-routing-key", BI_DEAD_ROUTING_KEY);
+            // 设置队列的过期时间，单位为毫秒，这里设置为 10 秒
+            params.put("x-message-ttl", 20000);
+            params.put("x-max-length", 1);
             // 声明队列，设置队列持久化、非独占、非自动删除，并传入额外的参数为 null
-            channel.queueDeclare(BI_QUEUE_NAME, true, false, false, null);
+            channel.queueDeclare(BI_QUEUE_NAME, true, false, false, params);
             // 将队列绑定到交换机，指定路由键为 "my_routingKey"
             channel.queueBind(BI_QUEUE_NAME, BI_EXCHANGE_NAME, BI_ROUTING_KEY);
         } catch (Exception e) {

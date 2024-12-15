@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -62,6 +63,9 @@ public class ChartController {
 
     @Resource
     private MyMessageProducer myMessageProducer;
+
+    @Resource
+    private RedisTemplate redisTemplate;
 
     // region
 
@@ -355,6 +359,11 @@ public class ChartController {
     @PostMapping("/list/mypage")
     public BaseResponse<Page<Chart>> listMyChartByPage(@RequestBody ChartQueryRequest chartQueryRequest, HttpServletRequest request)  {
         UserVO userVo = userService.getLoginUser(request);
+        String redisKey=String.format("zwbi:user:mychart:%s", userVo.getId());
+        Page<Chart> page = (Page<Chart>) redisTemplate.opsForValue().get(redisKey);
+        if (page!=null){
+            return ResultUtils.success(page);
+        }
         long current = 1;
         long size = 10;
         Chart chartQuery = new Chart();
@@ -367,6 +376,13 @@ public class ChartController {
         queryWrapper.eq("userId", userVo.getId());
         queryWrapper.orderByDesc("createTime"); // 添加排序条件
         Page<Chart> chartPage = chartService.page(new Page<>(current, size), queryWrapper);
+        if(chartPage.getTotal()>0){
+            try {
+                redisTemplate.opsForValue().set(redisKey,chartPage,30000, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                log.error("redis set key error",e);
+            }
+        }
         return ResultUtils.success(chartPage);
 
     }
@@ -407,7 +423,21 @@ public class ChartController {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        boolean b = chartService.removeById(deleteRequest.getId());
+        Long chartId = deleteRequest.getId();
+        Chart chart = chartService.getById(chartId);
+        if (chart == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR);
+        }
+        UserVO loginUser = userService.getLoginUser(request);
+
+        if (!userService.isAdmin(request)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        Long userId = loginUser.getId();
+        if (userId != null && !userId.equals(chart.getUserId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
+        }
+        boolean b = chartService.removeById(chartId);
         return ResultUtils.success(b);
     }
 
